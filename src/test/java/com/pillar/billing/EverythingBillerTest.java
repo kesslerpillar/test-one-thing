@@ -16,12 +16,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SeparatedBillerTest {
+public class EverythingBillerTest {
 
     @InjectMocks
     private Biller biller;
@@ -60,63 +58,30 @@ public class SeparatedBillerTest {
     }
 
     @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_FindCustomersWithOutstandingBalances(){
-        biller.sendInvoicesToCustomersWithOutstandingBalances();
-
-        verify(cutomerRepository).findWithOutstandingBalance();
-    }
-
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_CreateInvoices_FirstCustomer(){
-        biller.sendInvoicesToCustomersWithOutstandingBalances();
-
-        verify(invoiceGenerator).createFor(firstCustomer);
-    }
-
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_CreateInvoices_SecondCustomer(){
-        biller.sendInvoicesToCustomersWithOutstandingBalances();
-
-        verify(invoiceGenerator).createFor(secondCustomer);
-    }
-
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_MailInvoice_First(){
-        when(firstCustomer.shouldEmail()).thenReturn(false);
-        when(secondCustomer.shouldEmail()).thenReturn(false);
+    public void sendEmailInvoiceToCustomersThatHaveAnOustandingBalance(){
+        when(firstCustomer.shouldEmail()).thenReturn(true);
+        when(secondCustomer.shouldEmail()).thenReturn(true);
 
         biller.sendInvoicesToCustomersWithOutstandingBalances();
 
-        verify(mailer).mail(secondCustomer, secondInvoice);
-    }
+        verify(emailer).send(firstCustomer, firstInvoice);
+        verify(emailer).send(secondCustomer, secondInvoice);
 
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_MailInvoice_Second(){
         when(firstCustomer.shouldEmail()).thenReturn(false);
         when(secondCustomer.shouldEmail()).thenReturn(false);
 
         biller.sendInvoicesToCustomersWithOutstandingBalances();
 
         verify(mailer).mail(firstCustomer, firstInvoice);
-    }
+        verify(mailer).mail(secondCustomer, secondInvoice);
 
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_EmailInvoice_First(){
         when(firstCustomer.shouldEmail()).thenReturn(true);
-        when(secondCustomer.shouldEmail()).thenReturn(true);
+        when(secondCustomer.shouldEmail()).thenReturn(false);
 
         biller.sendInvoicesToCustomersWithOutstandingBalances();
 
-        verify(emailer).send(firstCustomer, firstInvoice);
-    }
+        verify(emailer, atLeastOnce()).send(firstCustomer, firstInvoice);
+        verify(mailer, atLeastOnce()).mail(secondCustomer, secondInvoice);
 
-    @Test
-    public void sendInvoicesToCustomersWithOutstandingBalances_EmailInvoice_Second(){
-        when(firstCustomer.shouldEmail()).thenReturn(true);
-        when(secondCustomer.shouldEmail()).thenReturn(true);
-
-        biller.sendInvoicesToCustomersWithOutstandingBalances();
-
-        verify(emailer).send(firstCustomer, firstInvoice);
     }
 }
